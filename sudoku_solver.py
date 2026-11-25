@@ -1,10 +1,10 @@
 import time
 
 class sudokusolver:
-	_puzzle		= []
-	_original 	= []
-	_keep_stats	= False
-	_statistics = {}
+	__puzzle		= []
+	__original 		= []
+	__keep_stats	= False
+	__statistics 	= {}
 
 	def __init__(self, puzzle: list[int], keep_stats: bool) -> None:
 		"""
@@ -27,13 +27,13 @@ class sudokusolver:
 		if (not all(type(val) is int and 0 <= val <= 9 for val in puzzle)):
 			raise ValueError("puzzle elements must be integers from 0 to 9")
 
-		self._keep_stats = keep_stats
+		self.__keep_stats = keep_stats
 
 		# Copy so mutating the puzzle during solving doesn't surprise the caller
-		self._puzzle = puzzle.copy()
+		self.__puzzle = puzzle.copy()
 
 	@staticmethod
-	def get_row_num(index: int) -> int:
+	def __get_row_num(index: int) -> int:
 		"""
 		Calculate the row number (0-8) from the index (0-80)
 
@@ -46,7 +46,7 @@ class sudokusolver:
 		return index // 9
 
 	@staticmethod
-	def get_col_num(index: int) -> int:
+	def __get_col_num(index: int) -> int:
 		"""
 		Calculate the column number (0-8) from the index (0-80)
 
@@ -58,7 +58,7 @@ class sudokusolver:
 		"""
 		return index % 9
 
-	def get_block_num(self, index: int) -> int:
+	def __get_block_num(self, index: int) -> int:
 		"""
 		Determine the block number from the index (0-80). Blocks are:
 		0 1 2
@@ -71,12 +71,12 @@ class sudokusolver:
 		Returns:
 			int: block number
 		"""
-		row_num = self.get_row_num(index)
-		col_num = self.get_col_num(index)
+		row_num = self.__get_row_num(index)
+		col_num = self.__get_col_num(index)
 
 		return ((row_num // 3) * 3) + (col_num // 3)
 
-	def row_valid(self, index: int, value: int) -> bool:
+	def __row_valid(self, index: int, value: int) -> bool:
 		"""
 		Determine if a given value is acceptable in the given index with respect to the row.
 
@@ -88,21 +88,21 @@ class sudokusolver:
 			bool: valid or not
 		"""
 		# Determine the row number to know what index the row starts on
-		row_num = self.get_row_num(index)
+		row_num = self.__get_row_num(index)
 		start 	= row_num * 9
 		end 	= start + 9
 
 		# print(f"row:{row_num} ", end="")
 		# Iterate over from start of the row till end
 		for i in range(start, end):
-			# print(f"r[{i}]={puzzle[i]} ", end="")
-			if (self._puzzle[i] == value):
+			# print(f"r[{i}]={self.__puzzle[i]} ", end="")
+			if (self.__puzzle[i] == value):
 				return False
 		# print()
 
 		return True
 
-	def col_valid(self, index: int, value: int) -> bool:
+	def __col_valid(self, index: int, value: int) -> bool:
 		"""
 		Determine if a value is valid for the column it is in
 
@@ -114,19 +114,19 @@ class sudokusolver:
 			bool: valid or not
 		"""
 		# When you have the first column number it gets easier
-		col_num = self.get_col_num(index)
+		col_num = self.__get_col_num(index)
 
 		# print(f"col:{col_num} ", end="")
 		for i in range(9):
 			col_index = (i * 9) + col_num
 			# print(f"c[{col_index}]={puzzle[col_index]} ", end="")
-			if (self._puzzle[col_index] == value):
+			if (self.__puzzle[col_index] == value):
 				return False
 		# print()
 
 		return True
 
-	def block_valid(self, index: int, value: int) -> bool:
+	def __block_valid(self, index: int, value: int) -> bool:
 		"""
 		Determine if a value is valid for the block it is in
 
@@ -137,13 +137,13 @@ class sudokusolver:
 		Returns:
 			bool: valid or not
 		"""
-		row_num_block	= self.get_row_num(index) // 3
-		col_num_block	= self.get_col_num(index) // 3
+		row_num_block	= self.__get_row_num(index) // 3
+		col_num_block	= self.__get_col_num(index) // 3
 
 
 		start = ((row_num_block * 3) * 9) + (col_num_block * 3)
 
-		block_num = self.get_block_num(index)
+		block_num = self.__get_block_num(index)
 		# print(f"blk:{block_num} (start:{start}) ", end="")
 
 		for i in range(9):
@@ -152,13 +152,13 @@ class sudokusolver:
 
 			block_index	= (start + row) + (col * 9)
 			# print(f"b[{block_index}]={puzzle[block_index]} ", end="")
-			if (self._puzzle[block_index] == value):
+			if (self.__puzzle[block_index] == value):
 				return False
 		# print()
 
 		return True
 
-	def value_is_valid(self, index: int, value: int) -> bool:
+	def __value_is_valid(self, index: int, value: int) -> bool:
 		"""
 		The heart of the sudoku solving. Can this value go here? Only if it is valid in 
 		its row, col, and block. Not to mention there was not already a value there
@@ -171,13 +171,13 @@ class sudokusolver:
 			bool: _description_
 		"""
 		return (
-			self._puzzle[index] == 0
-			and self.row_valid(index, value)
-			and self.col_valid(index, value)
-			and self.block_valid(index, value)
+			self.__puzzle[index] == 0
+			and self.__row_valid(index, value)
+			and self.__col_valid(index, value)
+			and self.__block_valid(index, value)
 		)
 
-	def guess_value(self, index: int, start_val) -> int:
+	def __guess_value(self, index: int, start_val) -> int:
 		"""
 		Given a starting point, go ahead and iterate up until 9 to see if we catch the 
 
@@ -191,7 +191,7 @@ class sudokusolver:
 		# print(f"Guessing index {index}. ", end="")
 		for i in range(start_val, 10):
 			# print(f"{i}...", end="")
-			if (self.value_is_valid(index, i)):
+			if (self.__value_is_valid(index, i)):
 				return i
 
 	def print_puzzle(self) -> None:
@@ -209,10 +209,10 @@ class sudokusolver:
 				print("-" * 21)
 
 			# Print the | to show the blocks
-			if (self.get_col_num(i) > 0 and (i % 3 == 0)):
+			if (self.__get_col_num(i) > 0 and (i % 3 == 0)):
 				print("| ", end="")
 
-			print(f"{self._puzzle[i]} ".replace("0", "-"), end="")
+			print(f"{self.__puzzle[i]} ".replace("0", "-"), end="")
 
 		# End on a new line
 		print()
@@ -221,8 +221,8 @@ class sudokusolver:
 		"""
 		Print out the statistics object - not very pretty
 		"""
-		if (self._keep_stats):
-			print(self._statistics)
+		if (self.__keep_stats):
+			print(self.__statistics)
 			
 	def get_stats(self) -> dict:
 		"""
@@ -237,8 +237,8 @@ class sudokusolver:
 				totalretries: [int], amount of times the puzzle had to be started from the beginning
 			}
 		"""
-		if (self._keep_stats):
-			return self._statistics.copy()
+		if (self.__keep_stats):
+			return self.__statistics.copy()
 		else:
 			return None
 		
@@ -250,7 +250,7 @@ class sudokusolver:
 			bool: true if solved, false if unsolvable
 		"""
 		# Copy the original and store it. When regressing, we need to know there there was originally a value in that index
-		self._original = self._puzzle.copy()
+		self.__original = self.__puzzle.copy()
 
 		# Iterate until we are solved
 		index 	= 0
@@ -260,14 +260,14 @@ class sudokusolver:
 		regressions = 0
 		guesses		= 0
 		retries		= 0
-		blanks		= self._original.count(0)
+		blanks		= self.__original.count(0)
 		first_index	= None
 
 		starttime = time.perf_counter()
 		while (not solved):
 			# Determine the original value and the current one
-			og 		= self._original[index]
-			value 	= self._puzzle[index]
+			og 		= self.__original[index]
+			value 	= self.__puzzle[index]
 			
 			# Determine if we need to make a guess or just proceed with the original value
 			if (og > 0):
@@ -279,7 +279,7 @@ class sudokusolver:
 					first_index = index
 
 				# No value previously, so we start our guessing from 1
-				value = self.guess_value(index, 1)
+				value = self.__guess_value(index, 1)
 
 				# Still no value, so we need to regress
 				if (value == None):
@@ -287,14 +287,15 @@ class sudokusolver:
 
 			else:
 				# This spot already had a value so lets reset it and try agaoin.
-				self._puzzle[index] = 0
-				value	= self.guess_value(index, value + 1)
+				self.__puzzle[index] = 0
+				value	= self.__guess_value(index, value + 1)
 				# Regress if we didn't get a valid guess
 				regress = (value == None)
 
 			if (regress):
 				# When regressing, we need to decrement the index, 
 				# consider if we have completely failed, and track regressiosn and retries				index		-= 1
+				index		-= 1
 				regressions += 1
 				if (index < first_index):
 					print("UNSOLVABLE")
@@ -304,7 +305,7 @@ class sudokusolver:
 			else:
 				# Otherwise regress is false so we just set the value
 				# and move onward - track guesses and the index
-				self._puzzle[index] = value
+				self.__puzzle[index] = value
 				guesses += 1
 				index	+= 1
 
@@ -314,10 +315,10 @@ class sudokusolver:
 
 		elapsedtime = time.perf_counter() - starttime
 
-		self._statistics['totaltimems']			= elapsedtime * 1000
-		self._statistics['totalguesses'] 		= guesses
-		self._statistics['spacestofill']		= blanks
-		self._statistics['totalregressions'] 	= regressions
-		self._statistics['totalretries']		= retries
+		self.__statistics['totaltimems']			= elapsedtime * 1000
+		self.__statistics['totalguesses'] 		= guesses
+		self.__statistics['spacestofill']		= blanks
+		self.__statistics['totalregressions'] 	= regressions
+		self.__statistics['totalretries']		= retries
 
 		return True
