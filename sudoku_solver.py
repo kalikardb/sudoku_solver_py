@@ -1,9 +1,12 @@
+import time
 
 class sudokusolver:
 	_puzzle		= []
 	_original 	= []
+	_keep_stats	= False
+	_statistics = {}
 
-	def __init__(self, puzzle: list[int]) -> None:
+	def __init__(self, puzzle: list[int], keep_stats: bool) -> None:
 		"""
 		Goal here is to ALWAYS instantiate with a list of integers that is 81 values long and contains ONLY 0-9
 
@@ -24,31 +27,10 @@ class sudokusolver:
 		if (not all(type(val) is int and 0 <= val <= 9 for val in puzzle)):
 			raise ValueError("puzzle elements must be integers from 0 to 9")
 
+		self._keep_stats = keep_stats
+
 		# Copy so mutating the puzzle during solving doesn't surprise the caller
 		self._puzzle = puzzle.copy()
-
-	def print_puzzle(self) -> None:
-		"""
-		Print out the puzzle in an appealing way
-		"""
-		# Iterate through 0-80
-		for i in range(81):
-			# Subsequent print() calls use end="" so this is our way of knowing to add a new line
-			if (i > 0 and (i % 9 == 0)):
-				print()
-
-			# Print a line of hyphens to show all blocks
-			if (i > 0 and (i % 27 == 0)):
-				print("-" * 21)
-
-			# Print the | to show the blocks
-			if (self.get_col_num(i) > 0 and (i % 3 == 0)):
-				print("| ", end="")
-
-			print(f"{self._puzzle[i]} ".replace("0", "-"), end="")
-
-		# End on a new line
-		print()
 
 	@staticmethod
 	def get_row_num(index: int) -> int:
@@ -212,9 +194,60 @@ class sudokusolver:
 			if (self.value_is_valid(index, i)):
 				return i
 
-	def solve(self):
+	def print_puzzle(self) -> None:
 		"""
-		Solve the puzzle!
+		Print out the puzzle in an appealing way
+		"""
+		# Iterate through 0-80
+		for i in range(81):
+			# Subsequent print() calls use end="" so this is our way of knowing to add a new line
+			if (i > 0 and (i % 9 == 0)):
+				print()
+
+			# Print a line of hyphens to show all blocks
+			if (i > 0 and (i % 27 == 0)):
+				print("-" * 21)
+
+			# Print the | to show the blocks
+			if (self.get_col_num(i) > 0 and (i % 3 == 0)):
+				print("| ", end="")
+
+			print(f"{self._puzzle[i]} ".replace("0", "-"), end="")
+
+		# End on a new line
+		print()
+
+	def print_stats(self) -> None:
+		"""
+		Print out the statistics object - not very pretty
+		"""
+		if (self._keep_stats):
+			print(self._statistics)
+			
+	def get_stats(self) -> dict:
+		"""
+		Get the statistics object when done
+
+		Returns:
+			dict: {
+				totaltimems: [int], total milliseconds spent iterating
+				totalguesses: [int], amount of times it had to guess a value for a slot
+				spacestofill: [int], before solving, the amount of empy spaces to fil
+				totalregressions: [int], amount of times solver had to decrement its index and try a different value
+				totalretries: [int], amount of times the puzzle had to be started from the beginning
+			}
+		"""
+		if (self._keep_stats):
+			return self._statistics.copy()
+		else:
+			return None
+		
+	def bruteforce_solve(self) -> bool:
+		"""
+		Solve the puzzle
+
+		Returns:
+			bool: true if solved, false if unsolvable
 		"""
 		# Copy the original and store it. When regressing, we need to know there there was originally a value in that index
 		self._original = self._puzzle.copy()
@@ -223,23 +256,34 @@ class sudokusolver:
 		index 	= 0
 		solved	= False
 		regress = False
+
+		regressions = 0
+		guesses		= 0
+		retries		= 0
+		blanks		= self._original.count(0)
+		first_index	= 0
+
+		starttime = time.perf_counter()
 		while (not solved):
 			# Determine the original value and the current one
 			og 		= self._original[index]
 			value 	= self._puzzle[index]
-
+			
 			# Determine if we need to make a guess or just proceed with the original value
 			if (og > 0):
 				# Proceed with the original value
 				value = og
 			elif (value == 0):
+				if (first_index == None):
+					first_index = index
+
 				# No value previously, so we start our guessing from 0
 				value = self.guess_value(index, 1)
 
 				# No active safedhouse
 				if (value == None):
 					# print("NEED TO REGRESS")
-					self._puzzle[index] = 0
+					# self._puzzle[index] = 0
 					regress = True
 
 			else:
@@ -252,40 +296,31 @@ class sudokusolver:
 					regress = False
 
 			if (regress):
-				index -= 1
-				if (index < 0):
+				index		-= 1
+				regressions += 1
+
+				if (index < first_index):
 					print("UNSOLVABLE")
-					return
+					return False
+				elif (index == first_index):
+					retries += 1
 
 			else:
 				# print(f"value = {value}")
 				self._puzzle[index] = value
-				index += 1
+				guesses += 1
+				index	+= 1
 
 				if (index > 80):
 					solved = True
 
-sample1 = [
-    5, 0, 8, 0, 0, 0, 0, 6, 0,
-    0, 4, 2, 0, 0, 8, 0, 0, 3,
-    6, 0, 3, 0, 4, 9, 0, 0, 7,
-    8, 0, 9, 0, 3, 0, 0, 0, 0,
-    3, 7, 0, 2, 0, 1, 0, 4, 8,
-    0, 0, 0, 0, 8, 0, 3, 0, 2,
-    2, 0, 0, 1, 5, 0, 4, 0, 9,
-    1, 0, 0, 4, 0, 0, 2, 5, 0,
-    0, 5, 0, 0, 0, 0, 7, 0, 1,
-]
+		elapsedtime = time.perf_counter() - starttime
 
-# MAIN
-def main():
-	solver = sudokusolver(sample1)
-	solver.print_puzzle()
+		self._statistics['totaltimems']			= elapsedtime
+		self._statistics['totalguesses'] 		= guesses
+		self._statistics['spacestofill']		= blanks
+		self._statistics['totalregressions'] 	= regressions
+		self._statistics['totalretries']		= retries
 
-	solver.solve()
-	print()
-	print("======   PAU   ======")
-	solver.print_puzzle()
+		return True
 
-if __name__ == "__main__":
-    main()
