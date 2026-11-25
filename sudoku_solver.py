@@ -261,7 +261,7 @@ class sudokusolver:
 		guesses		= 0
 		retries		= 0
 		blanks		= self._original.count(0)
-		first_index	= 0
+		first_index	= None
 
 		starttime = time.perf_counter()
 		while (not solved):
@@ -274,53 +274,50 @@ class sudokusolver:
 				# Proceed with the original value
 				value = og
 			elif (value == 0):
+				# Record the first index to make sure we count our retries
 				if (first_index == None):
 					first_index = index
 
-				# No value previously, so we start our guessing from 0
+				# No value previously, so we start our guessing from 1
 				value = self.guess_value(index, 1)
 
-				# No active safedhouse
+				# Still no value, so we need to regress
 				if (value == None):
-					# print("NEED TO REGRESS")
-					# self._puzzle[index] = 0
 					regress = True
 
 			else:
+				# This spot already had a value so lets reset it and try agaoin.
 				self._puzzle[index] = 0
-				value = self.guess_value(index, value + 1)
-				if (value == None):
-					# print("KEEP REGRESSING")
-					regress = True
-				else:
-					regress = False
+				value	= self.guess_value(index, value + 1)
+				# Regress if we didn't get a valid guess
+				regress = (value == None)
 
 			if (regress):
-				index		-= 1
+				# When regressing, we need to decrement the index, 
+				# consider if we have completely failed, and track regressiosn and retries				index		-= 1
 				regressions += 1
-
 				if (index < first_index):
 					print("UNSOLVABLE")
 					return False
 				elif (index == first_index):
 					retries += 1
-
 			else:
-				# print(f"value = {value}")
+				# Otherwise regress is false so we just set the value
+				# and move onward - track guesses and the index
 				self._puzzle[index] = value
 				guesses += 1
 				index	+= 1
 
 				if (index > 80):
+					# Success
 					solved = True
 
 		elapsedtime = time.perf_counter() - starttime
 
-		self._statistics['totaltimems']			= elapsedtime
+		self._statistics['totaltimems']			= elapsedtime * 1000
 		self._statistics['totalguesses'] 		= guesses
 		self._statistics['spacestofill']		= blanks
 		self._statistics['totalregressions'] 	= regressions
 		self._statistics['totalretries']		= retries
 
 		return True
-
